@@ -40,7 +40,7 @@
         </el-header>
         <el-main>
             <el-button type="success" @click="handleShowAdd">添加订单</el-button>
-            <el-dialog title="添加订单" :visible.sync="dialogFormVisible">
+            <el-dialog title="添加订单" :visible.sync="dialogFormVisible" fullscreen>
                 <!-- <el-dialog title="添加客户" :visible.sync="dialogCustomerVisible" append-to-body>
                     <ol>
                         <li v-for="(customer,index) in customers">
