@@ -25,12 +25,12 @@
             },
             formLabelWidth: '120px',
             orders: [],
-            startDate:new Date(),
-            endDate:new Date(),
-            filterCustomer:"all",
-            statistics:{
-                created:{},
-                paid:{}
+            startDate: new Date(),
+            endDate: new Date(),
+            filterCustomer: "all",
+            statistics: {
+                created: {},
+                paid: {}
             },
         },
         created: function () {
@@ -76,11 +76,11 @@
                 });
                 return customers;
             },
-            customersFilter(){
-                return this.customers.map(function(customer){
+            customersFilter() {
+                return this.customers.map(function (customer) {
                     return {
-                        text:customer,
-                        value:customer
+                        text: customer,
+                        value: customer
                     }
                 })
             },
@@ -218,27 +218,27 @@
                 }
                 return '';
             },
-            filterCustomers(customer,order,column){
-                return order.customer===customer
+            filterCustomers(customer, order, column) {
+                return order.customer === customer
             },
-            handleStatistic(){
-                this.statistics.customer=this.filterCustomer;
-                this.statistics.created.orders=this.orders.filter(function(order){
-                    return order.createDate && (order.createDate>=this.startDate) && (order.createDate<this.endDate) && (this.filterCustomer==="all" || this.filterCustomer===order.customer);
+            handleStatistic() {
+                this.statistics.customer = this.filterCustomer;
+                this.statistics.created.orders = this.orders.filter(function (order) {
+                    return order.createDate && (order.createDate >= this.startDate) && (order.createDate < this.endDate) && (this.filterCustomer === "all" || this.filterCustomer === order.customer);
                 }.bind(this));
-                this.statistics.paid.orders=this.orders.filter(function(order){
-                    return order.paidDate && (order.paidDate>=this.startDate) && (order.paidDate<this.endDate) && (this.filterCustomer==="all" || this.filterCustomer===order.customer);
+                this.statistics.paid.orders = this.orders.filter(function (order) {
+                    return order.paidDate && (order.paidDate >= this.startDate) && (order.paidDate < this.endDate) && (this.filterCustomer === "all" || this.filterCustomer === order.customer);
                 }.bind(this));
-                this.statistics.created.amount=this.statistics.created.orders.length?this.statistics.created.orders.reduce(function(a,b){
+                this.statistics.created.amount = this.statistics.created.orders.length ? this.statistics.created.orders.reduce(function (a, b) {
                     return {
-                        amount:a.amount+b.amount
+                        amount: a.amount + b.amount
                     }
-                }).amount:0;
-                this.statistics.paid.receive=this.statistics.paid.orders.length?this.statistics.paid.orders.reduce(function(a,b){
+                }).amount : 0;
+                this.statistics.paid.receive = this.statistics.paid.orders.length ? this.statistics.paid.orders.reduce(function (a, b) {
                     return {
-                        receive:a.receive+b.receive
+                        receive: a.receive + b.receive
                     }
-                }).receive:0;
+                }).receive : 0;
                 alert(`在${this.startDate.toLocaleDateString()}至${this.endDate.toLocaleDateString()}内，
             客户${this.filterCustomer==="all"?"全部":this.filterCustomer},
             有${this.statistics.created.orders.length}个创建订单，
