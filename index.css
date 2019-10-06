@@ -1,0 +1,12 @@
+#title {
+    text-align: center;
+}
+
+.el-table .uncomplete-row {
+    background: #F56C6C;
+    color:black
+}
+
+.el-table .complete-row {
+    background: #DCDFE6;
+}
