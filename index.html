@@ -69,9 +69,11 @@
         height: 20px;
         margin-left: 10px;
     }
-    b{
-        color:red;
+
+    b {
+        color: red;
     }
+
     /* #addOrderForm {
         border-style: dashed;
     } */
@@ -182,13 +184,13 @@
                 <h5 style="color:darkorchid">统计</h5>
                 <div class="form-group">
                     <label for="from">从</label>
-                    <input class="form-ana" type="date" id="from" v-model="datefrom">
+                    <input class="form-ana" type="date" id="from" v-model.lazy="datefrom">
                 </div>
                 <div class="form-group">
                     <label for="to">到</label>
-                    <input class="form-ana" type="date" id="to" v-model="dateto">
+                    <input class="form-ana" type="date" id="to" v-model.lazy="dateto">
                 </div>
-                
+
                 <button class="btn btn-success center-block" @click="handleAnalyze">统计订单</button>
             </div>
             <div class="info" v-if="showAnalyze" style="text-align: center;color:darkorchid">
@@ -287,12 +289,12 @@
             editingOrder: null,
             datefrom: "",
             dateto: "",
-            orderGroups:{},
-            showAnalyze:false,
-            createdNumber:0,
-            createdAmount:0,
-            paidNumber:0,
-            paidReceive:0
+            orderGroups: {},
+            showAnalyze: false,
+            createdNumber: 0,
+            createdAmount: 0,
+            paidNumber: 0,
+            paidReceive: 0
         },
         created: function () {
             localforage.getItem("orders").then((orders) => {
@@ -316,6 +318,17 @@
         computed: {
             filteredOrders: function () {
                 filteredOrders = this.orders.slice(0);
+                if (this.datefrom != "" && this.dateto != "") {
+                    filteredOrders = filteredOrders.filter(function (order) {
+                        if (Date.parse(order.createDate) >= Date.parse(this.datefrom) &&
+                            Date.parse(order.createDate) <= Date.parse(this.dateto)) {
+                            return order;
+                        }
+                    }.bind(this))
+                }
+                filteredOrders.sort(function (a, b) {
+                    return Date.parse(b.createDate) - Date.parse(a.createDate);
+                })
                 return filteredOrders;
             },
             activeCustomers: function () {
@@ -501,35 +514,39 @@
                         orderGroups[order.customer].paid.orders.push(order);
                     }
                 });
-                this.createdNumber=0;
-                this.createdAmount=0;
-                this.paidNumber=0;
-                this.paidReceive=0;
+                this.createdNumber = 0;
+                this.createdAmount = 0;
+                this.paidNumber = 0;
+                this.paidReceive = 0;
                 for (const activeCustomer in orderGroups) {
                     if (orderGroups.hasOwnProperty(activeCustomer)) {
                         const orderGroup = orderGroups[activeCustomer];
-                        this.createdNumber=this.createdNumber+orderGroup.created.orders.length;
-                        this.paidNumber=this.paidNumber+orderGroup.paid.orders.length;
-                        orderGroup.created.amount=orderGroup.created.orders.reduce(function(a,b){
+                        this.createdNumber = this.createdNumber + orderGroup.created.orders.length;
+                        this.paidNumber = this.paidNumber + orderGroup.paid.orders.length;
+                        orderGroup.created.amount = orderGroup.created.orders.reduce(function (a, b) {
                             return {
-                                amount:a.amount+b.amount
+                                amount: a.amount + b.amount
                             };
-                        },{amount:0}).amount;
-                        this.createdAmount=this.createdAmount+orderGroup.created.amount;
-                        orderGroup.paid.receive=orderGroup.paid.orders.reduce(function(a,b){
+                        }, {
+                            amount: 0
+                        }).amount;
+                        this.createdAmount = this.createdAmount + orderGroup.created.amount;
+                        orderGroup.paid.receive = orderGroup.paid.orders.reduce(function (a, b) {
                             return {
-                                receive:a.receive+b.receive
+                                receive: a.receive + b.receive
                             };
-                        },{receive:0}).receive;
-                        this.paidReceive=this.paidReceive+orderGroup.paid.receive;
+                        }, {
+                            receive: 0
+                        }).receive;
+                        this.paidReceive = this.paidReceive + orderGroup.paid.receive;
                     }
                 }
-                this.orderGroups=orderGroups;
-                this.showAnalyze=true;
-                
+                this.orderGroups = orderGroups;
+                this.showAnalyze = true;
+
             },
-            handleCancelAnalyze(){
-                this.showAnalyze=false;
+            handleCancelAnalyze() {
+                this.showAnalyze = false;
             }
         }
     })
