@@ -69,7 +69,9 @@
         height: 20px;
         margin-left: 10px;
     }
-
+    b{
+        color:red;
+    }
     /* #addOrderForm {
         border-style: dashed;
     } */
@@ -81,14 +83,15 @@
         <div class="container">
             <h1 class="text-primary">帝成订单管理系统</h1>
             <!-- 添加订单 -->
-            <div class="checkbox" style="text-align: center">
+            <div class="checkbox" style="background-color: burlywood;text-align: center">
                 <input type="checkbox" id="showAddOrder" v-model="showAddOrder">
                 <label class="text-info" for="showAddOrder" style="margin-left:20px">显示编辑订单</label>
             </div>
+
             <div class="bg-success form-horizontal" id="addOrderForm" v-show="showAddOrder">
                 <div class="formitem form-group">
                     <label for="customer" class="col-sm-2 control-label">客户:</label>
-                    <input class="" type="text" id="customer" v-model.trim="customer">
+                    <input type="text" id="customer" v-model.trim="customer">
                     <div class="tip" v-show="showTipCustomer">请输入客户</div>
                 </div>
                 <div class="express" v-if="activeCustomers.length">
@@ -164,13 +167,39 @@
                 </div>
                 <div class="formitem form-group">
                     <template v-if="isEditing">
-                    <!-- <div style="width:100%" v-if="isEditing" class="btn-group" role="group" aria-label="..."> -->
-                        <button class="btn btn-lg" @click="handleCancelEdit" style="display:inline;width:30%">取消</button>
-                        <button class="btn btn-primary btn-lg" @click="handleSubmitEdit" style="display:inline;width:30%">修改</button>
-                    <!-- </div> -->
+                        <!-- <div style="width:100%" v-if="isEditing" class="btn-group" role="group" aria-label="..."> -->
+                        <button class="btn btn-lg" @click="handleCancelEdit"
+                            style="display:inline;width:30%">取消</button>
+                        <button class="btn btn-primary btn-lg" @click="handleSubmitEdit"
+                            style="display:inline;width:30%">修改</button>
+                        <!-- </div> -->
                     </template>
                     <button class="btn btn-primary btn-lg" @click="handleAddOrder" v-else>添加订单</button>
                 </div>
+            </div>
+            <!-- 统计信息 -->
+            <div id="analyze" class="analyze">
+                <h5 style="color:darkorchid">统计</h5>
+                <div class="form-group">
+                    <label for="from">从</label>
+                    <input class="form-ana" type="date" id="from" v-model="datefrom">
+                </div>
+                <div class="form-group">
+                    <label for="to">到</label>
+                    <input class="form-ana" type="date" id="to" v-model="dateto">
+                </div>
+                
+                <button class="btn btn-success center-block" @click="handleAnalyze">统计订单</button>
+            </div>
+            <div class="info" v-if="showAnalyze" style="text-align: center;color:darkorchid">
+                <h5>{{datefrom}}~{{dateto}}期间，
+                    总共有<b>{{createdNumber}}</b>个订单:<b>{{createdAmount}}</b>元；
+                    <b>{{paidNumber}}</b>个付款:<b>{{paidReceive}}</b>元。其中</h5>
+                <p v-for="(value,name) in orderGroups">
+                    <b>{{name}}</b>有<b>{{value.created.orders.length}}</b>个订单，共<b>{{value.created.amount}}</b>元；
+                    <b>{{value.paid.orders.length}}</b>个付款，共<b>{{value.paid.receive}}</b>元
+                </p>
+                <button class="btn btn-default pull-right" @click="handleCancelAnalyze">取消</button>
             </div>
             <!-- 显示订单表格 -->
             <table class="table table-bordered bg-info" table-striped>
@@ -256,6 +285,14 @@
             showAddOrder: false,
             isEditing: false,
             editingOrder: null,
+            datefrom: "",
+            dateto: "",
+            orderGroups:{},
+            showAnalyze:false,
+            createdNumber:0,
+            createdAmount:0,
+            paidNumber:0,
+            paidReceive:0
         },
         created: function () {
             localforage.getItem("orders").then((orders) => {
@@ -403,7 +440,7 @@
                 this.customer = order.customer;
                 this.createDate = order.createDate;
                 this.goods = order.goods;
-                this.amount = order.amount;
+                // this.amount = order.amount;
                 this.paidDate = order.paidDate;
                 this.receive = order.receive;
             },
@@ -430,7 +467,7 @@
                 this.isEditing = false;
                 this.showAddOrder = false;
             },
-            handleCancelEdit(){
+            handleCancelEdit() {
                 this.customer = "";
                 this.createDate = "";
                 this.goods = [];
@@ -438,6 +475,61 @@
                 this.receive = 0;
                 this.isEditing = false;
                 this.showAddOrder = false;
+            },
+            handleAnalyze() {
+                let orderGroups = {};
+                this.activeCustomers.forEach(activeCustomer => {
+                    orderGroups[activeCustomer] = {
+                        created: {
+                            orders: [],
+                            amount: 0
+                        },
+                        paid: {
+                            orders: [],
+                            receive: 0
+                        },
+                    };
+                });
+                // console.log(orderGroups)
+                this.orders.forEach(order => {
+                    if (Date.parse(order.createDate) >= Date.parse(this.datefrom) &&
+                        Date.parse(order.createDate) <= Date.parse(this.dateto)) {
+                        orderGroups[order.customer].created.orders.push(order);
+                    }
+                    if (Date.parse(order.paidDate) >= Date.parse(this.datefrom) &&
+                        Date.parse(order.paidDate) <= Date.parse(this.dateto)) {
+                        orderGroups[order.customer].paid.orders.push(order);
+                    }
+                });
+                this.createdNumber=0;
+                this.createdAmount=0;
+                this.paidNumber=0;
+                this.paidReceive=0;
+                for (const activeCustomer in orderGroups) {
+                    if (orderGroups.hasOwnProperty(activeCustomer)) {
+                        const orderGroup = orderGroups[activeCustomer];
+                        this.createdNumber=this.createdNumber+orderGroup.created.orders.length;
+                        this.paidNumber=this.paidNumber+orderGroup.paid.orders.length;
+                        orderGroup.created.amount=orderGroup.created.orders.reduce(function(a,b){
+                            return {
+                                amount:a.amount+b.amount
+                            };
+                        },{amount:0}).amount;
+                        this.createdAmount=this.createdAmount+orderGroup.created.amount;
+                        orderGroup.paid.receive=orderGroup.paid.orders.reduce(function(a,b){
+                            return {
+                                receive:a.receive+b.receive
+                            };
+                        },{receive:0}).receive;
+                        this.paidReceive=this.paidReceive+orderGroup.paid.receive;
+                    }
+                }
+                this.orderGroups=orderGroups;
+                this.showAnalyze=true;
+                
+            },
+            handleCancelAnalyze(){
+                this.showAnalyze=false;
             }
         }
     })
