@@ -1,1 +1,533 @@
-<!DOCTYPE html><html lang=en><head><meta charset=utf-8><meta http-equiv=X-UA-Compatible content="IE=edge"><meta name=viewport content="width=device-width,initial-scale=1"><link rel=icon href=/favicon.ico><title>dc</title><link href=/css/app.75c2f2f4.css rel=preload as=style><link href=/css/chunk-vendors.413fea29.css rel=preload as=style><link href=/js/app.a6f29424.js rel=preload as=script><link href=/js/chunk-vendors.a147c08d.js rel=preload as=script><link href=/css/chunk-vendors.413fea29.css rel=stylesheet><link href=/css/app.75c2f2f4.css rel=stylesheet></head><body><noscript><strong>We're sorry but dc doesn't work properly without JavaScript enabled. Please enable it to continue.</strong></noscript><div id=app></div><script src=/js/chunk-vendors.a147c08d.js></script><script src=/js/app.a6f29424.js></script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>帝成订单管理系统</title>
+    <link href="https://cdn.bootcss.com/font-awesome/5.11.2/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.bootcss.com/localforage/1.7.3/localforage.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"></script>
+    <style>
+        * {
+            margin: 0 0;
+        }
+
+        h1#title {
+            text-align: center;
+        }
+
+        button {
+            border: none;
+            height: 2em;
+            width: 90%;
+            font-size: large;
+            margin: 10px auto;
+            display: block;
+            border-radius: 5px;
+        }
+
+        .addNewOrderForm,
+        .filter {
+            width: 90%;
+            margin: 0 auto;
+        }
+
+        .filterForm {
+            text-align: center;
+        }
+
+        input {
+            outline: none;
+            border-style: hidden;
+            border-bottom: solid;
+            background-color: white;
+        }
+
+        #goodsDetails,
+        .goodsTable {
+            margin-left: 5em;
+        }
+
+        div.errorMessage {
+            text-align: center;
+            color: red;
+        }
+
+        table {
+            text-align: center;
+            width: 100%;
+            margin-bottom: 2em;
+            position: relative;
+            border-collapse: collapse;
+        }
+
+        table.detailTable {
+            font-size: 0.8em;
+            width: 90%;
+            margin: 0 auto 2em auto;
+        }
+
+        tr.ordersTableHeader>th {
+            position: sticky;
+            background-color: white;
+            height: 2em;
+            top: 0;
+            z-index: 100;
+        }
+
+        div.analyzeTable>table {
+            width: 90%;
+            margin: 10px auto;
+        }
+
+        div.analyzeTable>table td,
+        div.analyzeTable>table th {
+            border: solid 1px;
+        }
+
+        tr.total>td>span {
+            color: red;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <h1 id="title">{{title}}</h1>
+        <button class="addNewOrder" @click="handleClickAddNewOrder">
+            <span v-if="bShowAddNewOrderForm">关闭表格</span>
+            <span v-else>添加新订单</span>
+        </button>
+        <div class="addNewOrderForm" v-show="bShowAddNewOrderForm">
+            <div class="errorMessage">
+                <p>{{errorMessage}}</p>
+            </div>
+            <div class="merchant">
+                <label for="merchantName">商家名称：</label>
+                <input type="text" id="merchantName" v-model="order.merchantName" list="merchantNames">
+                <datalist id="merchantNames">
+                    <option v-for="m in merchantNames">{{m}}</option>
+                </datalist>
+            </div>
+            <div class="customer">
+                <label for="customerAddress">客户地址：</label>
+                <input type="text" id="customerAddress" v-model="order.customerAddress">
+            </div>
+            <div class="orderDate">
+                <label for="orderDate">下单日期：</label>
+                <input type="date" id="orderDate" v-model="order.orderDate">
+            </div>
+            <div class="goods">
+                <label for="goodsDetails">商品详情：</label>
+                <div class="goodsTable" v-show="order.goods.length">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>名称</th>
+                                <th>单价</th>
+                                <th>数量</th>
+                                <th>总价</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(good,index) in order.goods">
+                                <td>{{good.goodName}}</td>
+                                <td>{{good.goodPrice}}</td>
+                                <td>{{good.goodNumber}}</td>
+                                <td>{{good.goodPrice*good.goodNumber}}</td>
+                                <td><i class="fa fa-trash" @click="handleClickDeleteGood(index)"></i></td>
+                            </tr>
+                            <tr class="total">
+                                <td>
+                                    <span>
+                                        总计
+                                    </span>
+                                </td>
+                                <td></td>
+                                <td></td>
+                                <td>
+                                    <span>
+                                        {{countOrderAmount(order)}}
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="goodsDetails">
+                    <div class="goodName">
+                        <label for="goodName">名称：</label>
+                        <input type="text" id="goodName" v-model="good.goodName" list="goodNames">
+                        <datalist id="goodNames">
+                            <option v-for="g in goodNames">{{g}}</option>
+                        </datalist>
+                    </div>
+                    <div class="goodPrice">
+                        <label for="goodPrice">单价：</label>
+                        <input type="number" id="goodPrice" v-model.number="good.goodPrice">
+                    </div>
+                    <div class="goodNumber">
+                        <label for="goodNumber">数量：</label>
+                        <input type="number" id="goodNumber" v-model.number="good.goodNumber">
+                    </div>
+                    <button class="addGood" @click="handleClickAddGood">添加商品</button>
+                </div>
+            </div>
+            <button class="addOrder" @click="handleClickAddOrder">添加订单</button>
+        </div>
+        <button class="filterButton" @click="handleClickFilter">
+            <span v-if="bShowFilter">隐藏筛选</span>
+            <span v-else>显示筛选</span>
+        </button>
+        <div class="filterForm" v-if="bShowFilter">
+            <div class="merchant">
+                <label>商家名称：</label>
+                <input type="text" v-model="filter.merchantName" list="merchantNames">
+            </div>
+            <div class="customer">
+                <label>客户地址：</label>
+                <input type="text" v-model="filter.customerAddress">
+            </div>
+            <div class="orderDate">
+                <label>起始日期：</label>
+                <input type="date" v-model="filter.dateStart">
+            </div>
+            <div class="orderDate">
+                <label>截止日期：</label>
+                <input type="date" v-model="filter.dateEnd">
+            </div>
+            <div class="amount">
+                <label>最小金额：</label>
+                <input type="number" v-model.number="filter.minAmount">
+            </div>
+            <div class="amount">
+                <label>最大金额：</label>
+                <input type="number" v-model.number="filter.maxAmount">
+            </div>
+            <button class="analyze" @click="handleClickAnalyze">统计</button>
+            <div class="analyzeText">
+                <p>
+                    {{analyzeText}}
+                </p>
+            </div>
+            <div class="analyzeTable" v-if="analyzeInfos.length">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>商家</th>
+                            <th>订单数量</th>
+                            <th>订单总额</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="(info,index) in analyzeInfos">
+                            <td>{{info.merchantName}}</td>
+                            <td>{{info.number}}</td>
+                            <td>{{info.amount}}</td>
+                        </tr>
+                        <tr class="total">
+                            <td>
+                                <span>
+                                    总计
+                                </span>
+                            </td>
+                            <td>
+                                <span>
+                                    {{analyzeInfos.reduce(function(acc,cur){
+                                        return acc+cur.number;
+                                    },0)}}
+                                </span>
+                            </td>
+                            <td>
+                                <span>
+                                    {{analyzeInfos.reduce(function(acc,cur){
+                                        return acc+cur.amount;
+                                    },0)}}
+                                </span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="ordersTable">
+            <button class="export" @click="hanldeClickExport">导出表格</button>
+            <table>
+                <thead>
+                    <tr class="ordersTableHeader">
+                        <th>序号</th>
+                        <th>商家</th>
+                        <th>客户</th>
+                        <th>日期</th>
+                        <th>金额</th>
+                        <th>删除</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template v-for="(order,index) in filteredOrders">
+                        <tr>
+                            <td colspan="5">
+                                <hr>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>{{index+1}}</td>
+                            <td>{{order.merchantName}}</td>
+                            <td>{{order.customerAddress}}</td>
+                            <td>{{order.orderDate}}</td>
+                            <td>{{countOrderAmount(order)}}</td>
+                            <td><i class="fa fa-trash" @click="handleClickDeleteOrder(order)"></i></td>
+                        </tr>
+                        <tr class="orderDetail">
+                            <td colspan="5">
+                                <table class="detailTable">
+                                    <thead>
+                                        <tr>
+                                            <th>名称</th>
+                                            <th>单价</th>
+                                            <th>数量</th>
+                                            <th>总价</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="(good,index) in order.goods">
+                                            <td>{{good.goodName}}</td>
+                                            <td>{{good.goodPrice}}</td>
+                                            <td>{{good.goodNumber}}</td>
+                                            <td>{{good.goodPrice*good.goodNumber}}</td>
+                                        </tr>
+                                        <tr class="total">
+                                            <td>
+                                                <span>
+                                                    总计
+                                                </span>
+                                            </td>
+                                            <td></td>
+                                            <td></td>
+                                            <td>
+                                                <span>
+                                                    {{countOrderAmount(order)}}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <script>
+        var vm = new Vue({
+            el: "#app",
+            data: {
+                title: "帝成订单管理系统",
+                bShowAddNewOrderForm: true,
+                bShowFilter: true,
+                errorMessage: "",
+                orders: [],
+                order: {
+                    merchantName: "",
+                    customerAddress: "",
+                    orderDate: "",
+                    goods: [],
+                },
+                good: {
+                    goodName: "",
+                    goodPrice: 0,
+                    goodNumber: 0,
+                },
+                filter: {
+                    merchantName: "",
+                    customerAddress: "",
+                    dateStart: "",
+                    dateEnd: "",
+                    minAmount: 0,
+                    maxAmount: 0,
+                },
+                analyzeText: "",
+                analyzeInfos: [],
+            },
+            computed: {
+                merchantNames: function () {
+                    var merchantNames = [];
+                    for (let index = 0; index < this.orders.length; index++) {
+                        const order = this.orders[index];
+                        if (!merchantNames.includes(order.merchantName)) {
+                            merchantNames.push(order.merchantName);
+                        }
+                    }
+                    return merchantNames;
+                },
+                goodNames: function () {
+                    var goodNames = [];
+                    for (let index = 0; index < this.orders.length; index++) {
+                        const order = this.orders[index];
+                        for (let indexG = 0; indexG < order.goods.length; indexG++) {
+                            const good = order.goods[indexG];
+                            if (!goodNames.includes(good.goodName)) {
+                                goodNames.push(good.goodName);
+                            }
+                        }
+                    }
+                    return goodNames;
+                },
+                filteredOrders: function () {
+                    var filteredOrders = [];
+                    var reMerchantName = new RegExp(this.filter.merchantName);
+                    var reCustomerAddress = new RegExp(this.filter.customerAddress);
+                    for (let index = 0; index < this.orders.length; index++) {
+                        const order = this.orders[index];
+                        if (reMerchantName.test(order.merchantName)
+                            && reCustomerAddress.test(order.customerAddress)
+                            && Date.parse(this.filter.dateStart || "2000-01-01") <= Date.parse(order.orderDate)
+                            && Date.parse(this.filter.dateEnd || "2099-12-31") >= Date.parse(order.orderDate)
+                            && (!this.filter.minAmount || (this.filter.minAmount <= this.countOrderAmount(order)))
+                            && (!this.filter.maxAmount || (this.filter.maxAmount >= this.countOrderAmount(order)))
+                        ) {
+                            filteredOrders.push(order);
+                        }
+                    }
+                    return filteredOrders;
+                }
+            },
+            created: function () {
+                localforage.getItem("orders").then((orders) => {
+                    this.orders = orders || [];
+                }).catch((err) => {
+                    this.orders = [];
+                })
+            },
+            watch: {
+                orders: {
+                    handler: function (val, oldVal) {
+                        localforage.setItem("orders", val);
+                    },
+                    deep: true,
+                }
+            },
+            methods: {
+                handleClickAddNewOrder() {
+                    this.bShowAddNewOrderForm = !this.bShowAddNewOrderForm;
+                },
+                handleClickAddGood() {
+                    if (!this.good.goodName) {
+                        this.errorMessage = "商品名称 不能为空！";
+                        return;
+                    }
+                    if (this.good.goodPrice <= 0) {
+                        this.errorMessage = "商品单价 必须大于0！"
+                        return;
+                    }
+                    if (this.good.goodNumber <= 0) {
+                        this.errorMessage = "商品数量 必须大于0！"
+                        return;
+                    }
+                    this.errorMessage = "";
+                    this.order.goods.push(this.good);
+                    this.good = {
+                        goodName: "",
+                        goodPrice: 0,
+                        goodNumber: 0
+                    }
+                },
+                countOrderAmount(order) {
+                    amount = order.goods.reduce(function (acc, cur) {
+                        return acc + cur.goodPrice * cur.goodNumber;
+                    }, 0);
+                    return amount;
+                },
+                handleClickDeleteGood(index) {
+                    var sure = confirm("确定要删除商品" + this.order.goods[index].goodName + "？");
+                    sure && this.order.goods.splice(index, 1);
+                },
+                handleClickAddOrder() {
+                    if (!this.order.merchantName) {
+                        this.errorMessage = "商家名称 不能为空！"
+                        return;
+                    }
+                    if (!this.order.customerAddress) {
+                        this.errorMessage = "客户地址 不能为空！"
+                        return;
+                    }
+                    if (!this.order.orderDate) {
+                        this.errorMessage = "下单日期 不能为空！"
+                        return;
+                    }
+                    if (!this.order.goods.length) {
+                        this.errorMessage = "订单商品 不能为空！"
+                        return;
+                    }
+                    this.errorMessage = "";
+                    this.order.timestamp = Date.parse(new Date());
+                    this.orders.unshift(this.order);
+                    this.order = {
+                        merchantName: "",
+                        customerAddress: "",
+                        orderDate: "",
+                        goods: [],
+                    }
+                },
+                handleClickDeleteOrder(order) {
+                    var sure = confirm("确定要删除" + order.orderDate + "," + order.merchantName + "在" + order.customerAddress + "的订单吗？");
+                    if (sure) {
+                        for (let index = 0; index < this.orders.length; index++) {
+                            const o = this.orders[index];
+                            if (order.timestamp == o.timestamp) {
+                                this.orders.splice(index, 1);
+                            }
+                        }
+                    }
+                },
+                handleClickFilter() {
+                    this.bShowFilter = !this.bShowFilter;
+                },
+                handleClickAnalyze() {
+                    this.analyzeText = "在当前筛选条件下，统计如下表：";
+                    var merchantNames = [];
+                    for (let index = 0; index < this.filteredOrders.length; index++) {
+                        const order = this.filteredOrders[index];
+                        if (!merchantNames.includes(order.merchantName)) {
+                            merchantNames.push(order.merchantName);
+                        }
+
+                    };
+                    this.analyzeInfos = merchantNames.map(function (merchantName, index, arr) {
+                        return {
+                            merchantName: merchantName,
+                            number: 0,
+                            amount: 0,
+                        }
+                    }.bind(this));
+                    for (let index = 0; index < this.orders.length; index++) {
+                        const order = this.orders[index];
+                        for (let indexM = 0; indexM < this.analyzeInfos.length; indexM++) {
+                            const analyzeInfo = this.analyzeInfos[indexM];
+                            if (analyzeInfo.merchantName == order.merchantName) {
+                                analyzeInfo.number++;
+                                analyzeInfo.amount += this.countOrderAmount(order);
+                            }
+                        }
+                    }
+                },
+                hanldeClickExport() {
+                    var tableHTML=$(".ordersTable")[0].outerHTML;
+                    var blob = new Blob([tableHTML], {type : 'application/html'});
+                    var url = URL.createObjectURL(blob);
+                    var oa = document.createElement('a');
+                    oa.href=url;
+                    oa.download=this.filter.merchantName+this.filter.dateStart+"汇总.html";
+                    oa.click();
+                }
+            }
+        })
+    </script>
+</body>
+
+</html>
