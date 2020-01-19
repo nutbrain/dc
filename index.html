@@ -119,7 +119,10 @@
             </div>
             <div class="customer">
                 <label for="customerAddress">客户地址：</label>
-                <input type="text" id="customerAddress" v-model="order.customerAddress">
+                <input type="text" id="customerAddress" v-model="order.customerAddress" list="customerAddresses">
+                <datalist id="customerAddresses">
+                    <option v-for="c in customerAddresses">{{c}}</option>
+                </datalist>
             </div>
             <div class="orderDate">
                 <label for="orderDate">下单日期：</label>
@@ -195,7 +198,7 @@
             </div>
             <div class="customer">
                 <label>客户地址：</label>
-                <input type="text" v-model="filter.customerAddress">
+                <input type="text" v-model="filter.customerAddress" list="customerAddresses">
             </div>
             <div class="orderDate">
                 <label>起始日期：</label>
@@ -391,6 +394,16 @@
                         }
                     }
                     return merchantNames;
+                },
+                customerAddresses:function(){
+                    var customerAddresses=[];
+                    for (let index = 0; index < this.orders.length; index++) {
+                        const order = this.orders[index];
+                        if (!customerAddresses.includes(order.customerAddress)) {
+                            customerAddresses.push(order.customerAddress);
+                        }
+                    }
+                    return customerAddresses;
                 },
                 goodNames: function () {
                     var goodNames = [];
