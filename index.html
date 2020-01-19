@@ -19,7 +19,7 @@
             text-align: center;
         }
 
-        button {
+        button:not(.clear) {
             border: none;
             height: 2em;
             width: 90%;
@@ -28,7 +28,11 @@
             display: block;
             border-radius: 5px;
         }
-
+        .clear{
+            background:rgb(243, 131, 131);
+            color:white;
+            border-radius: 5px;
+        }
         .addNewOrderForm,
         .filter {
             width: 90%;
@@ -96,6 +100,7 @@
 
 <body>
     <div id="app">
+        <button class="clear" @click="handleClickClear">清除记录</button>
         <h1 id="title">{{title}}</h1>
         <button class="addNewOrder" @click="handleClickAddNewOrder">
             <span v-if="bShowAddNewOrderForm">关闭表格</span>
@@ -254,11 +259,11 @@
                 </table>
             </div>
         </div>
+        <button class="export" @click="hanldeClickExport">导出表格</button>
         <div class="ordersTable">
-            <button class="export" @click="hanldeClickExport">导出表格</button>
             <table>
                 <thead>
-                    <tr class="ordersTableHeader">
+                    <tr class="ordersTableHeader" v-if="filteredOrders.length">
                         <th>序号</th>
                         <th>商家</th>
                         <th>客户</th>
@@ -319,6 +324,28 @@
                             </td>
                         </tr>
                     </template>
+                    <tr>
+                        <td colspan="5">
+                            <hr>
+                        </td>
+                    </tr>
+                    <tr class="total" v-if="filteredOrders.length">
+                        <td>
+                            T
+                        </td>
+                        <td>
+                            <span style="color:red">
+                                合计
+                            </span>
+                        </td>
+                        <td></td>
+                        <td></td>
+                        <td>
+                            <span style="color:red">
+                                {{countOrdersAmount(filteredOrders)}}
+                            </span>
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -328,8 +355,8 @@
             el: "#app",
             data: {
                 title: "帝成订单管理系统",
-                bShowAddNewOrderForm: true,
-                bShowFilter: true,
+                bShowAddNewOrderForm: false,
+                bShowFilter: false,
                 errorMessage: "",
                 orders: [],
                 order: {
@@ -443,6 +470,12 @@
                     }, 0);
                     return amount;
                 },
+                countOrdersAmount(orders) {
+                    amount = orders.reduce(function (acc, cur) {
+                        return acc + this.countOrderAmount(cur);
+                    }.bind(this), 0);
+                    return amount;
+                },
                 handleClickDeleteGood(index) {
                     var sure = confirm("确定要删除商品" + this.order.goods[index].goodName + "？");
                     sure && this.order.goods.splice(index, 1);
@@ -517,13 +550,30 @@
                     }
                 },
                 hanldeClickExport() {
-                    var tableHTML=$(".ordersTable")[0].outerHTML;
-                    var blob = new Blob([tableHTML], {type : 'application/html'});
+                    var tableHTML = $(".ordersTable")[0].outerHTML;
+                    tableHTML = '<!DOCTYPE html>\
+                                <html lang="en">\
+                                <head>\
+                                    <meta charset="UTF-8">\
+                                    <meta name="viewport" content="width=device-width, initial-scale=1.0">\
+                                    <meta http-equiv="X-UA-Compatible" content="ie=edge">\
+                                    <title>订单汇总</title>\
+                                </head>\
+                                <body>'+ tableHTML+"\</body\></html>";
+                    var blob = new Blob([tableHTML], { type: 'application/html' });
                     var url = URL.createObjectURL(blob);
                     var oa = document.createElement('a');
-                    oa.href=url;
-                    oa.download=this.filter.merchantName+this.filter.dateStart+"汇总.html";
+                    oa.href = url;
+                    oa.download = this.filter.merchantName + this.filter.dateStart + "汇总.html";
                     oa.click();
+                },
+                handleClickClear(){
+                    var sure=confirm("确定要清除记录吗？");
+                    sure && (sure=confirm("清楚后无法恢复，确定要清除吗？"));
+                    sure && (sure=confirm("请三思而后行，确定要清除吗？"));
+                    sure && localforage.clear().then(function(){
+                        document.location.reload();
+                    })
                 }
             }
         })
